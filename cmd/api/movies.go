@@ -1,16 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/kharljhon14/greenlight/internal/data"
 )
-
-func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "creating a new movie")
-}
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
 	//  Interpolated URL parameters will be
@@ -37,4 +34,23 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		// http.Error(w, "Ther server encountered a problem and could not process your request", http.StatusInternalServerError)
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Struct for holding information we expect to be in the http request
+	var input struct {
+		Title   string   `json:"title"`
+		Year    int32    `json:"year"`
+		Runtime int32    `json:"runtime"`
+		Genres  []string `json:"genres"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+	}
+
+	// Dump the contens of the input struct in a http response
+	fmt.Fprintf(w, "%+v\n", input)
 }
