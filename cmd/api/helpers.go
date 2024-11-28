@@ -54,10 +54,10 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	err := json.NewDecoder(r.Body).Decode(dst)
 	if err != nil {
 		// If there is an error during decoding, start the triage
-		var syntaxError *json.SyntaxError
-		var unmarshalTypeError *json.UnmarshalTypeError
-		var invalidUnmarshalError *json.InvalidUnmarshalError
-
+		var syntaxError *json.SyntaxError                     //  There is a syntax problem with the JSON being decoded
+		var unmarshalTypeError *json.UnmarshalTypeError       // A JSON value is not appropriate for the destination Go type.
+		var invalidUnmarshalError *json.InvalidUnmarshalError // The decode destination is not valid (usually because it is not a
+		// pointer). This is actually a problem with our application code, not the JSON itself.
 		switch {
 		case errors.As(err, &syntaxError):
 			return fmt.Errorf("body contains badly-formed JSON (at character %d)", syntaxError.Offset)
