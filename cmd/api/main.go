@@ -41,7 +41,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Enviroment (development|staging|production)")
 
 	// Read the DSN value from the db-dsn command line flag into the config struct
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://greenlight:password@localhost/greenlight", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://greenlight:password@localhost/greenlight?sslmode=disable", "PostgreSQL DSN")
 
 	flag.Parse()
 
@@ -56,6 +56,8 @@ func main() {
 
 	// Defer a call to db.Close() so that the connection pool is closed before the main() function exits
 	defer db.Close()
+
+	logger.Printf("database connection pool established")
 
 	// Declare an instance of the application struct, containing the config and the logger
 	app := &application{
