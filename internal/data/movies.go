@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/kharljhon14/greenlight/internal/validator"
@@ -19,6 +20,20 @@ type Movie struct {
 
 type MovieModel struct {
 	DB *sql.DB
+}
+
+type Models struct {
+	Movies MovieModel
+}
+
+var (
+	ErrRecordNotFound = errors.New("record not found")
+)
+
+func NewModels(db *sql.DB) Models {
+	return Models{
+		Movies: MovieModel{DB: db},
+	}
 }
 
 func ValidateMovie(v *validator.Validator, movie *Movie) {
