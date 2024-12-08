@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/kharljhon14/greenlight/internal/data"
 	"github.com/kharljhon14/greenlight/internal/validator"
@@ -18,13 +18,15 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	movie := data.Movie{
-		ID:        id,
-		CreatedAt: time.Now(),
-		Title:     "Hello",
-		Runtime:   132,
-		Genres:    []string{"drama", "romance", "war"},
-		Version:   1,
+	movie, err := app.models.Movies.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundErrorResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 
 	// Encode the struct to JSON and send as the HTTP response
