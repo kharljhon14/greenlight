@@ -9,6 +9,40 @@ import (
 	"github.com/kharljhon14/greenlight/internal/validator"
 )
 
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
+	// Placeholder for the expected input values
+	var input struct {
+		Title    string
+		Genres   []string
+		Page     int
+		PageSize int
+		Sort     string
+	}
+
+	// New Validator
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	// Extract the title and genres
+	input.Title = app.readString(qs, "title", "")
+	input.Genres = app.readCSV(qs, "genres", []string{})
+
+	// Extract page and pagesize
+	input.Page = app.readInt(qs, "page", 1, v)
+	input.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	// Extract sort
+	input.Sort = app.readString(qs, "sort", "id")
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	fmt.Fprintf(w, "%+v\n", input)
+}
+
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
 	//  Interpolated URL parameters will be
 	// stored in the request context.
