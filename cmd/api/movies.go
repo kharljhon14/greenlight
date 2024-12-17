@@ -12,11 +12,9 @@ import (
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
 	// Placeholder for the expected input values
 	var input struct {
-		Title    string
-		Genres   []string
-		Page     int
-		PageSize int
-		Sort     string
+		Title  string
+		Genres []string
+		data.Filter
 	}
 
 	// New Validator
@@ -29,13 +27,15 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	input.Genres = app.readCSV(qs, "genres", []string{})
 
 	// Extract page and pagesize
-	input.Page = app.readInt(qs, "page", 1, v)
-	input.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filter.Page = app.readInt(qs, "page", 1, v)
+	input.Filter.PageSize = app.readInt(qs, "page_size", 20, v)
 
 	// Extract sort
-	input.Sort = app.readString(qs, "sort", "id")
+	input.Filter.Sort = app.readString(qs, "sort", "id")
+	// Supported sort values
+	input.Filter.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
 
-	if !v.Valid() {
+	if data.ValidateFilters(v, input.Filter); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
