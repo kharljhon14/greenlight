@@ -1,6 +1,10 @@
 package data
 
-import "github.com/kharljhon14/greenlight/internal/validator"
+import (
+	"strings"
+
+	"github.com/kharljhon14/greenlight/internal/validator"
+)
 
 type Filter struct {
 	Page         int
@@ -17,4 +21,21 @@ func ValidateFilters(v *validator.Validator, f Filter) {
 
 	// Check that the sort parameter matches a value in the safelist
 	v.Check(validator.In(f.Sort, f.SortSafeList...), "sort", "invalid sort value")
+}
+
+func (f Filter) sortColumn() string {
+	for _, safeValue := range f.SortSafeList {
+		if f.Sort == safeValue {
+			return strings.TrimPrefix(f.Sort, "-")
+		}
+	}
+
+	panic("unsafe sort parameter: " + f.Sort)
+}
+
+func (f Filter) sortDirection() string {
+	if strings.HasPrefix(f.Sort, "-") {
+		return "DESC"
+	}
+	return "ASC"
 }
