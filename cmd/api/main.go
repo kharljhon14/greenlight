@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/kharljhon14/greenlight/internal/data"
+	"github.com/kharljhon14/greenlight/internal/jsonlog"
 	_ "github.com/lib/pq"
 )
 
@@ -31,7 +31,7 @@ type config struct {
 
 type application struct {
 	config config
-	logger *log.Logger
+	logger *jsonlog.Logger
 	models data.Models
 }
 
@@ -57,17 +57,17 @@ func main() {
 
 	// Initialize a new logger which writes messages to the standard out stream
 	// Prefixed with the current date and time
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	db, err := openDB(cfg)
 	if err != nil {
-		logger.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 
 	// Defer a call to db.Close() so that the connection pool is closed before the main() function exits
 	defer db.Close()
 
-	logger.Printf("database connection pool established")
+	logger.PrintInfo("database connection pool established", nil)
 
 	// Declare an instance of the application struct, containing the config and the logger
 	app := &application{
@@ -87,9 +87,13 @@ func main() {
 	}
 
 	// Start http server
-	logger.Printf("Starting %s server on %s", cfg.env, srv.Addr)
+	logger.PrintInfo("Starting server", map[string]string{
+		"addr": srv.Addr,
+		"env":  cfg.env,
+	})
+
 	err = srv.ListenAndServe()
-	logger.Fatal(err)
+	logger.PrintFatal(err, nil)
 
 }
 
