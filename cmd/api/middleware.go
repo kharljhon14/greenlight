@@ -57,32 +57,34 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Extract the clients IP address
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		if app.config.limiter.enabled {
+			// Extract the clients IP address
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
 
-		// Lock the mutex
-		mu.Lock()
+			// Lock the mutex
+			mu.Lock()
 
-		// Check if the Ip address exists in the map.
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
-		}
+			// Check if the Ip address exists in the map.
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
+			}
 
-		// IF the request isn't allowed, unlock the mutex and send 429
-		if !clients[ip].limiter.Allow() {
+			// IF the request isn't allowed, unlock the mutex and send 429
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceededResponse(w, r)
+				return
+			}
+			//that the mutex isn't unlocked until all the handlers downstream of this
+			// middleware have also returned
 			mu.Unlock()
-			app.rateLimitExceededResponse(w, r)
-			return
 		}
-		//that the mutex isn't unlocked until all the handlers downstream of this
-		// middleware have also returned
-		mu.Unlock()
-
 		next.ServeHTTP(w, r)
+
 	})
 
 }
