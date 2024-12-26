@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,19 +22,26 @@ func (app *application) serve() error {
 		WriteTimeout: 10 * time.Second,
 	}
 
+	// Shutdown channel
+	shutdownError := make(chan error)
+
 	go func() {
 		// Create a quit channel
 		quit := make(chan os.Signal, 1)
-
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 		// Read the signal from the quit channel. This code will block until a signal is
 		// received.
 		s := <-quit
 
-		app.logger.PrintInfo("caught signal", map[string]string{
+		app.logger.PrintInfo("shuttingg down server", map[string]string{
 			"signal": s.String(),
 		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		shutdownError <- srv.Shutdown(ctx)
 
 		os.Exit(0)
 	}()
@@ -42,5 +51,26 @@ func (app *application) serve() error {
 		"env":  app.config.env,
 	})
 
-	return srv.ListenAndServe()
+	// Calling Shutdown() on our server will cause ListenAndServe() to immediately
+	// return a http.ErrServerClosed error. So if we see this error, it is actually a
+	// good thing and an indication that the graceful shutdown has started. So we check
+	// specifically for this, only returning the error if it is NOT http.ErrServerClosed.
+	err := srv.ListenAndServe()
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	// Otherwise, we wait to receive the return value from Shutdown() on the
+	// shutdownError channel. If return value is an error, we know that there was a
+	// problem with the graceful shutdown and we return the error
+	err = <-shutdownError
+	if err != nil {
+		return err
+	}
+
+	app.logger.PrintInfo("stopped server", map[string]string{
+		"addr": srv.Addr,
+	})
+
+	return nil
 }
