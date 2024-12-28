@@ -1,12 +1,22 @@
 package data
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"time"
 
 	"github.com/kharljhon14/greenlight/internal/validator"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var (
+	ErrDuplicateEmail = errors.New("duplicate email")
+)
+
+type UserModel struct {
+	DB *sql.DB
+}
 
 type User struct {
 	ID        int64     `json:"id"`
@@ -21,6 +31,60 @@ type User struct {
 type password struct {
 	plaintext *string
 	hash      []byte
+}
+
+func (m UserModel) Insert(user *User) error {
+	query := `INSERT INTO user (name, email, password_hash, actived)
+	VALUES ($1, $2, $3, $4)
+	RETURNING id, created_at, version`
+
+	args := []interface{}{user.Name, user.Email, user.Password.hash, user.Activated}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			return ErrDuplicateEmail
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (m UserModel) GetByEmail(email string) (*User, error) {
+	query := `SELECT id, created_at, name, email, password_hash, activated, version
+	FROM users 
+	WHERE email = $1`
+
+	var user User
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, email).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Name,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
 }
 
 func (p *password) Set(plaintextPassword string) error {
