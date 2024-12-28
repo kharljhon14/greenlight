@@ -30,16 +30,6 @@ type MovieModel struct {
 	DB *sql.DB
 }
 
-type Models struct {
-	Movies MovieModel
-}
-
-func NewModels(db *sql.DB) Models {
-	return Models{
-		Movies: MovieModel{DB: db},
-	}
-}
-
 func ValidateMovie(v *validator.Validator, movie *Movie) {
 	// Check if the fields are not empty and not exceed 500 bytes long
 	v.Check(movie.Title != "", "title", "must be provided")
