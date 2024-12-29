@@ -34,7 +34,7 @@ type password struct {
 }
 
 func (m UserModel) Insert(user *User) error {
-	query := `INSERT INTO user (name, email, password_hash, actived)
+	query := `INSERT INTO users (name, email, password_hash, actived)
 	VALUES ($1, $2, $3, $4)
 	RETURNING id, created_at, version`
 
