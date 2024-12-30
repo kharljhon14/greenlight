@@ -59,7 +59,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 
 		defer func() {
 			if err := recover(); err != nil {
-				app.logger.PrintError(fmt.Errorf("%s", errr), nil)
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
 			}
 		}()
 
