@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/kharljhon14/greenlight/internal/data"
@@ -54,13 +55,21 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = app.mailer.Send(user.Email, "user_welcome.tmpl.html", user)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
+	go func() {
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", errr), nil)
+			}
+		}()
+
+		err = app.mailer.Send(user.Email, "user_welcome.tmpl.html", user)
+		if err != nil {
+			app.logger.PrintError(err, nil)
+		}
+	}()
+
+	err = app.writeJSON(w, http.StatusAccepted, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
