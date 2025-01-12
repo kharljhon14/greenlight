@@ -34,6 +34,9 @@ type password struct {
 	hash      []byte
 }
 
+// Pointing to a user
+var AnonymousUser = &User{}
+
 func (m UserModel) Insert(user *User) error {
 	query := `INSERT INTO users (name, email, password_hash, activated)
 	VALUES ($1, $2, $3, $4)
@@ -210,4 +213,9 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 	}
 	// Return the matching user.
 	return &user, nil
+}
+
+// Check if a User instace is the AnonymousUser
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }
